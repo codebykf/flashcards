@@ -138,4 +138,4 @@ Keep it to a single worker: SQLite handles writes from one process most simply, 
 
 ### Exposing it to the internet
 
-The app has **no login or access control**: anyone who can reach it can read, edit and delete every card. Keep it on a private network or VPN, or put it behind a reverse proxy (such as Nginx, Caddy or Traefik) that adds HTTPS and authentication.
+The app has **no login or access control**: Anyone who can reach it can read, edit and delete every card. Keep it on a private network or VPN, or put it behind a reverse proxy (such as Nginx, Caddy or Traefik) that adds HTTPS and authentication.
