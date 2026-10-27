@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Flashcards</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <script>
+    // Apply the saved theme before first paint to avoid a flash.
+    try {
+      if (localStorage.getItem("theme") === "dark") {
+        document.documentElement.dataset.theme = "dark";
+      }
+    } catch (e) {}
+  </script>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true"></span>
+      <h1>Flashcards</h1>
+    </div>
+    <input id="search" class="search" type="search" autocomplete="off"
+           placeholder="Search flashcards" aria-label="Search flashcards">
+    <button id="theme-toggle" class="btn btn-ghost" type="button" aria-pressed="false">
+      <span id="theme-label">Dark mode</span>
+    </button>
+  </header>
+
+  <main class="layout">
+    <aside class="sidebar">
+      <section class="panel">
+        <h2 id="card-form-title">New flashcard</h2>
+        <form id="card-form" autocomplete="off">
+          <label for="card-title">Title</label>
+          <input id="card-title" name="title" type="text" maxlength="200" required
+                 placeholder="What's on the front?">
+
+          <label for="card-body">Body</label>
+          <textarea id="card-body" name="body" rows="5" maxlength="5000" required
+                    placeholder="What's on the back?"></textarea>
+
+          <label for="card-group">Group</label>
+          <select id="card-group" name="group_id"></select>
+
+          <button id="card-submit" class="btn btn-primary" type="submit">Save flashcard</button>
+          <button id="card-cancel" class="btn btn-ghost btn-block" type="button" hidden>Cancel</button>
+        </form>
+      </section>
+
+      <section class="panel">
+        <h2>Groups</h2>
+        <form id="group-form" class="inline-form" autocomplete="off">
+          <input id="group-name" type="text" maxlength="60" required
+                 placeholder="New group name" aria-label="New group name">
+          <button class="btn btn-secondary" type="submit">Add</button>
+        </form>
+        <ul id="group-list" class="group-list"></ul>
+      </section>
+    </aside>
+
+    <section class="content">
+      <div class="content-head">
+        <h2 id="content-title">All flashcards</h2>
+        <span id="content-count" class="muted"></span>
+        <button id="quiz-start" class="btn btn-secondary quiz-start" type="button">Play quiz</button>
+      </div>
+      <div id="cards" class="cards"></div>
+      <p id="empty" class="empty" hidden></p>
+    </section>
+  </main>
+
+  <dialog id="quiz" class="quiz" aria-labelledby="quiz-heading">
+    <div class="quiz-head">
+      <h2 id="quiz-heading">Quiz</h2>
+      <span id="quiz-progress" class="muted"></span>
+      <button id="quiz-close" class="icon-btn" type="button" aria-label="Close quiz">×</button>
+    </div>
+
+    <div id="quiz-question">
+      <p class="quiz-label">Which flashcard is this from?</p>
+      <p id="quiz-prompt" class="quiz-prompt"></p>
+      <div id="quiz-options" class="quiz-options"></div>
+      <div class="quiz-foot">
+        <span id="quiz-score" class="muted"></span>
+        <button id="quiz-next" class="btn btn-primary" type="button" hidden>Next</button>
+      </div>
+    </div>
+
+    <div id="quiz-results" class="quiz-results" hidden>
+      <p id="quiz-final" class="quiz-final"></p>
+      <p id="quiz-message" class="muted"></p>
+      <div class="quiz-actions">
+        <button id="quiz-done" class="btn btn-ghost" type="button">Close</button>
+        <button id="quiz-again" class="btn btn-primary" type="button">Play again</button>
+      </div>
+    </div>
+  </dialog>
+
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+  <script src="app.js"></script>
+</body>
+</html>

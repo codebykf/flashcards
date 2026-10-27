@@ -1,0 +1,11 @@
+services:
+  flashcards:
+    build: .
+    ports:
+      - "8080:8080"
+    volumes:
+      - flashcards-data:/data
+    restart: unless-stopped
+
+volumes:
+  flashcards-data:
