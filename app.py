@@ -1,10 +1,12 @@
 import os
 import sqlite3
+from datetime import date
 
 from flask import Flask, g, jsonify, request
 
 DB_PATH = os.environ.get("DB_PATH", "/data/flashcards.db")
 DEFAULT_GROUP = "Default"
+BACKUP_VERSION = 1
 MAX_NAME = 60
 MAX_TITLE = 200
 MAX_BODY = 5000
@@ -191,6 +193,95 @@ def delete_card(card_id):
     db.execute("DELETE FROM cards WHERE id = ?", (card_id,))
     db.commit()
     return "", 204
+
+
+@app.get("/api/backup")
+def backup():
+    db = get_db()
+    groups = db.execute(
+        "SELECT name FROM groups ORDER BY name != ?, name COLLATE NOCASE",
+        (DEFAULT_GROUP,),
+    ).fetchall()
+    cards = db.execute(
+        """
+        SELECT c.title, c.body, g.name AS "group", c.created_at
+        FROM cards c JOIN groups g ON g.id = c.group_id
+        ORDER BY c.id
+        """
+    ).fetchall()
+    response = jsonify(
+        {
+            "app": "flashcards",
+            "version": BACKUP_VERSION,
+            "groups": [g["name"] for g in groups],
+            "cards": [dict(c) for c in cards],
+        }
+    )
+    filename = f"flashcards-backup-{date.today().isoformat()}.json"
+    response.headers["Content-Disposition"] = f'attachment; filename="{filename}"'
+    return response
+
+
+def backup_contents(data):
+    """Validate a backup payload. Returns ((groups, cards), None) or (None, error)."""
+    if not isinstance(data, dict) or data.get("app") != "flashcards":
+        return None, error("That file is not a flashcards backup.")
+    if data.get("version") != BACKUP_VERSION:
+        return None, error("That backup was made by an unsupported version.")
+    raw_groups, raw_cards = data.get("groups"), data.get("cards")
+    if not isinstance(raw_groups, list) or not isinstance(raw_cards, list):
+        return None, error("The backup is missing its groups or cards.")
+
+    # Group names are unique ignoring case, as in the groups table.
+    groups = {DEFAULT_GROUP.lower(): DEFAULT_GROUP}
+    for name in raw_groups:
+        name = name.strip()[:MAX_NAME] if isinstance(name, str) else ""
+        if name:
+            groups.setdefault(name.lower(), name)
+
+    cards = []
+    for raw in raw_cards:
+        if not isinstance(raw, dict):
+            return None, error("The backup contains an invalid flashcard.")
+        title = text_field(raw, "title", MAX_TITLE)
+        body = text_field(raw, "body", MAX_BODY)
+        if not title or not body:
+            return None, error("Every flashcard in the backup needs a title and body.")
+        group = text_field(raw, "group", MAX_NAME) or DEFAULT_GROUP
+        group = groups.setdefault(group.lower(), group)
+        created_at = raw.get("created_at")
+        cards.append(
+            (title, body, group, created_at if isinstance(created_at, str) else None)
+        )
+
+    return (list(groups.values()), cards), None
+
+
+@app.post("/api/restore")
+def restore():
+    contents, err = backup_contents(request.get_json(silent=True))
+    if err:
+        return err
+    groups, cards = contents
+    db = get_db()
+    # Replace everything in one transaction, so a failure leaves the data untouched.
+    try:
+        db.execute("DELETE FROM cards")
+        db.execute("DELETE FROM groups")
+        db.executemany("INSERT INTO groups (name) VALUES (?)", [(n,) for n in groups])
+        db.executemany(
+            """
+            INSERT INTO cards (title, body, group_id, created_at)
+            SELECT ?, ?, id, COALESCE(?, CURRENT_TIMESTAMP)
+            FROM groups WHERE name = ?
+            """,
+            [(title, body, created_at, group) for title, body, group, created_at in cards],
+        )
+        db.commit()
+    except sqlite3.Error:
+        db.rollback()
+        return error("The backup could not be restored.", 500)
+    return jsonify({"groups": len(groups), "cards": len(cards)})
 
 
 init_db()

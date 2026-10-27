@@ -188,6 +188,23 @@ select:focus {
   min-width: 0;
 }
 
+.panel-note {
+  margin: -6px 0 14px;
+  font-size: 13px;
+}
+
+.backup-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.backup-actions .btn {
+  flex: 1 1 auto;
+  text-align: center;
+  text-decoration: none;
+}
+
 /* ---------- Buttons ---------- */
 
 .btn {

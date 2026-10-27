@@ -10,6 +10,7 @@ It is a single Flask app that serves both a JSON API and a plain HTML/CSS/JS fro
 - **Groups**: put cards into named groups (up to 60 characters, case-insensitive and unique). A `Default` group always exists and cannot be deleted. Deleting any other group keeps its cards and moves them to `Default`.
 - **Filter and search**: pick a group in the sidebar to show only its cards, and use the search box to match text in titles and bodies (case-insensitive).
 - **Quiz**: **Play quiz** asks up to 10 questions drawn from the cards currently shown, so you can quiz yourself on one group or on a search result. Each question shows part of a card's body, with the title blanked out if the body contains it, and asks which of 4 titles it belongs to. The quiz needs at least 4 cards with different titles.
+- **Backup and restore**: **Download backup** in the sidebar saves every card and group to a JSON file. **Restore from backup** loads one of those files, after asking you to confirm, and **replaces** all current cards and groups. A file that isn't a valid backup is rejected without changing anything.
 - **Light and dark mode**: the choice is remembered in the browser.
 
 ## Project layout
@@ -36,6 +37,21 @@ All endpoints take and return JSON. Errors come back as `{"error": "message"}` w
 | `POST` | `/api/cards` | Create a card: `{"title": "...", "body": "...", "group_id": 1}`. `group_id` is optional and defaults to `Default` |
 | `PUT` | `/api/cards/<id>` | Replace a card's title, body and group (same body as `POST`) |
 | `DELETE` | `/api/cards/<id>` | Delete a card |
+| `GET` | `/api/backup` | Download all groups and cards as a JSON backup file |
+| `POST` | `/api/restore` | Replace all groups and cards with the contents of a backup (the JSON from `/api/backup`). Returns the restored counts |
+
+A backup looks like this. Cards refer to groups by name, so a backup can be restored into any instance:
+
+```json
+{
+  "app": "flashcards",
+  "version": 1,
+  "groups": ["Default", "Spanish"],
+  "cards": [
+    {"title": "Hola", "body": "Hello", "group": "Spanish", "created_at": "2026-10-27 14:15:09"}
+  ]
+}
+```
 
 ## Configuration
 
@@ -81,7 +97,15 @@ The database lives in the `flashcards-data` volume, so it survives rebuilds and 
 
 ### Backing up and restoring
 
-The database is a single file, `flashcards.db`, inside the `flashcards-data` volume. To copy it out to the current directory:
+The easiest way is the **Download backup** and **Restore from backup** buttons in the app. To script a backup instead:
+
+```bash
+curl -o flashcards-backup.json http://localhost:8080/api/backup
+curl -X POST -H "Content-Type: application/json" \
+     --data @flashcards-backup.json http://localhost:8080/api/restore
+```
+
+You can also copy the SQLite database itself. It is a single file, `flashcards.db`, inside the `flashcards-data` volume. To copy it out to the current directory:
 
 ```bash
 docker compose cp flashcards:/data/flashcards.db ./flashcards-backup.db

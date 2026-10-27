@@ -28,6 +28,8 @@ const els = {
   themeToggle: $("theme-toggle"),
   themeLabel: $("theme-label"),
   toast: $("toast"),
+  restoreStart: $("restore-start"),
+  restoreFile: $("restore-file"),
   quizStart: $("quiz-start"),
   quiz: $("quiz"),
   quizProgress: $("quiz-progress"),
@@ -314,6 +316,36 @@ els.groupForm.addEventListener("submit", async (event) => {
     els.groupName.value = "";
     await refresh();
     els.cardGroup.value = group.id;
+  } catch (err) {
+    toast(err.message);
+  }
+});
+
+/* ---------- Backup ---------- */
+
+els.restoreStart.addEventListener("click", () => els.restoreFile.click());
+
+els.restoreFile.addEventListener("change", async () => {
+  const file = els.restoreFile.files[0];
+  els.restoreFile.value = ""; // so choosing the same file again still fires "change"
+  if (!file) return;
+  try {
+    let backup;
+    try {
+      backup = JSON.parse(await file.text());
+    } catch (e) {
+      throw new Error("That file is not a flashcards backup.");
+    }
+    const count = Array.isArray(backup.cards) ? backup.cards.length : 0;
+    const current = state.cards.length;
+    if (!confirm(
+      `Restore ${count} flashcard(s) from "${file.name}"? ` +
+      `This replaces all ${current} current flashcard(s) and groups.`
+    )) return;
+    const result = await api("POST", "/api/restore", backup);
+    stopEditing();
+    await refresh();
+    toast(`Restored ${result.cards} flashcard(s) in ${result.groups} group(s).`);
   } catch (err) {
     toast(err.message);
   }

@@ -58,6 +58,17 @@
         </form>
         <ul id="group-list" class="group-list"></ul>
       </section>
+
+      <section class="panel">
+        <h2>Backup</h2>
+        <p class="muted panel-note">Save every flashcard and group to a file, or restore from one.
+          Restoring replaces all current flashcards.</p>
+        <div class="backup-actions">
+          <a class="btn btn-secondary" href="/api/backup" download>Download backup</a>
+          <button id="restore-start" class="btn btn-ghost" type="button">Restore from backup</button>
+        </div>
+        <input id="restore-file" type="file" accept=".json,application/json" hidden>
+      </section>
     </aside>
 
     <section class="content">
